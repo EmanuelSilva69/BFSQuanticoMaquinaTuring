@@ -1,11 +1,13 @@
 # quantum_extensions.py
 """
-Este módulo adiciona funcionalidades avançadas à Máquina de Turing Quântica:
-✔ Vetores de estado com amplitudes complexas (QuantumRegister)
-✔ Fita em superposição (QuantumTape)
-✔ Transições unitárias simuladas via operadores
-✔ Aplicação de fase (oracle) e difusão (Grover)
-✔ Simulação de decoerência (ruído quântico)
+quantum_extensions.py
+
+Este módulo adiciona extensões quânticas à Máquina de Turing Quântica (MTQ),
+incluindo suporte a vetores de estado com amplitudes complexas, fitas em superposição,
+operadores unitários simulados, oráculo de Grover, difusão e decoerência (ruído quântico).
+
+Autor: Emanuel Lopes Silva
+Data: Julho de 2025
 """
 
 import numpy as np
@@ -18,9 +20,18 @@ from collections import defaultdict
 # -----------------------------------------------------------------------------
 class QuantumRegister:
     """
-    Representa o estado global da máquina como um dicionário:
-    { configuração: amplitude_complexa }
-    Cada configuração pode conter (estado, cabeça, fita), por exemplo.
+
+    Representa o vetor de estado quântico como um dicionário esparso.
+
+    O estado da máquina é representado por:
+    { (estado, cabeça, fita): amplitude complexa }
+
+    Métodos:
+        - set: define amplitude manualmente.
+        - normalize: ajusta para ||ψ|| = 1.
+        - measure: colapsa conforme probabilidade.
+        - apply_unitary: aplica operador unitário (Grover, etc).
+
     """
     def __init__(self):
         self.states = defaultdict(complex)

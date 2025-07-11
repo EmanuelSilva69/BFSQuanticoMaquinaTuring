@@ -1,34 +1,79 @@
+"""
+Base.py
+
+Implementa uma simulação inspirada no algoritmo de Grover utilizando busca em largura (BFS).
+Aplica um oráculo e um operador de difusão a cada iteração para amplificar caminhos
+que levam ao estado de aceitação ('qf').
+
+Autor: Emanuel Lopes Silva
+Data: Julho de 2025
+"""
+
 from collections import deque, defaultdict
+from typing import Tuple, Dict, List, Any
 import copy
 
+
 class QuantumInspiredBFS:
-    def __init__(self, tm):
+    """
+    Simulação de uma BFS com reforço quântico inspirado no algoritmo de Grover.
+
+    Atributos:
+        tm: Máquina de Turing usada para simulação (com dicionário de transições).
+        max_iterations: Número máximo de iterações de reforço.
+        final_state: Estado considerado como aceitação.
+    """
+
+    def __init__(self, tm: Any):
+        """
+        Inicializa a simulação com a máquina de Turing fornecida.
+
+        Args:
+            tm (Any): Objeto que representa a máquina de Turing com atributo 'states'.
+        """
         self.tm = tm
         self.max_iterations = 5
         self.final_state = 'qf'
 
-    def oracle(self, config):
+    def oracle(self, config: Tuple[tuple, int, str]) -> int:
         """
-        Oráculo: retorna +1 para caminhos válidos (estado final), -1 para os demais.
-        Em Grover real, é uma inversão de fase. Aqui é ponderação.
+        Oráculo quântico simulado: retorna +1 para caminhos que levam ao estado final ('qf'),
+        e -1 para os demais.
+
+        Args:
+            config (tuple): Configuração atual (tape, head, state).
+
+        Returns:
+            int: +1 se for estado final, -1 caso contrário.
         """
         _, _, state = config
         return 1 if state == self.final_state else -1
 
-    def diffusion(self, amplitudes):
+    def diffusion(self, amplitudes: Dict[Tuple, float]) -> Dict[Tuple, float]:
         """
-        Simulação da difusão (espelhamento em torno da média).
-        Amplifica caminhos válidos, reduz inválidos.
+        Aplica o operador de difusão de Grover simulando o espelhamento das amplitudes
+        em torno da média.
+
+        Args:
+            amplitudes (dict): Dicionário de amplitudes associadas a cada configuração.
+
+        Returns:
+            dict: Novo dicionário de amplitudes após a difusão.
         """
         total = sum(amplitudes.values())
         mean = total / len(amplitudes)
         for k in amplitudes:
-            # Espelhamento em torno da média (Grover Diffusion Operator)
             amplitudes[k] = 2 * mean - amplitudes[k]
         return amplitudes
 
-    def run(self, input_string):
-        # Inicializa configuração
+    def run(self, input_string: str) -> None:
+        """
+        Executa a simulação BFS com reforço quântico por Grover.
+
+        Args:
+            input_string (str): Cadeia de entrada binária a ser processada.
+        """
+        # Configuração inicial
         initial_config = (tuple(input_string), 0, 'q0')
         queue = deque([(initial_config, [initial_config])])
         amplitudes = defaultdict(lambda: 1.0)
@@ -44,11 +89,12 @@ class QuantumInspiredBFS:
                 config = (tape, head, state)
                 amp = amplitudes[config]
 
-                # Aplica oráculo
+                # Aplica oráculo (Grover: inversão de fase simulada)
                 amp *= self.oracle(config)
 
-                # Transições possíveis
-                actions = self.tm.states.get((state, tape[head] if 0 <= head < len(tape) else ' '), set())
+                # Obtém transições da MT para esse estado e símbolo
+                symbol = tape[head] if 0 <= head < len(tape) else ' '
+                actions = self.tm.states.get((state, symbol), set())
 
                 for new_state, write_sym, move in actions:
                     new_tape = list(tape)
@@ -61,15 +107,14 @@ class QuantumInspiredBFS:
                     new_config = (tuple(new_tape), new_head, new_state)
                     new_path = path + [new_config]
 
-                    # Soma da amplitude para esse novo caminho
                     new_amplitudes[new_config] += amp
                     next_queue.append((new_config, new_path))
 
-            # Aplica difusão (Grover amplification)
+            # Reforça os caminhos prováveis com difusão (Grover amplification)
             amplitudes = self.diffusion(new_amplitudes)
             queue = next_queue
 
-        # Após iterações, selecionar o melhor caminho
+        # Seleciona o melhor caminho final com maior amplitude
         best_config = max(amplitudes, key=amplitudes.get)
         best_amp = amplitudes[best_config]
 

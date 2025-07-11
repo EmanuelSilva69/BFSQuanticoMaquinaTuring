@@ -1,3 +1,13 @@
+"""
+main.py
+
+Simulador de Máquina de Turing Quântica (MTQ), com suporte à evolução adaptativa
+e visualização de amplitudes. Permite medir estados finais e registrar log de
+probabilidades ao longo dos passos.
+
+Autor: Emanuel Lopes Silva
+Data: Julho de 2025
+"""
 import cmath
 from quantum_turing_machine import QuantumTuringMachine
 from copy import deepcopy
@@ -42,66 +52,86 @@ transitions = {
     ('q11', 't'): [('qf', 't', 'E')],
 }
 
-def run_until_final_state(qtm, max_steps_limit=100):
-    # Início da execução adaptativa com formatação ANSI para destaque
-    print(f"\n\033[95m Iniciando busca adaptativa por estado final...\033[0m")
-    steps = 2  # Começa com 2 passos (pode ser ajustado)
-    found = False
-    historico_passos = []  # ← Lista para armazenar (passos, estados) ao longo da execução
+import json
+from pathlib import Path
 
-    # Loop que testa progressivamente diferentes valores de max_steps
+log_amplitudes = []  # Lista global para armazenar o log por passo
+
+def run_until_final_state(qtm, max_steps_limit=100):
+    """
+    Executa a MTQ até atingir um estado final ou o limite máximo de passos.
+
+    Args:
+        qtm (QuantumTuringMachine): Instância da máquina quântica.
+        max_steps_limit (int): Máximo de passos permitidos.
+    """
+    print(f"\n\033[95m Iniciando busca adaptativa por estado final...\033[0m")
+    steps = 2
+    found = False
+    historico_passos = []
+
     while steps <= max_steps_limit:
         print(f"\n\033[97m Tentando com {steps} passos...\033[0m")
         try:
-            qtm.reset()  # Reinicia a máquina quântica a cada tentativa
-            qtm.run(max_steps=steps)  # Executa com o número atual de passos
+            qtm.reset()
+            qtm.run(max_steps=steps)
 
-            # Salva o estado do registrador após a execução deste passo
             snapshot = deepcopy(qtm.register.states)
-            historico_passos.append((steps, snapshot))  # Armazena o passo e os estados resultantes
+            historico_passos.append((steps, snapshot))
 
-            qtm.visualize_amplitudes()  # Mostra os estados e suas amplitudes para análise visual
+            # ===  Registro estruturado em log_amplitudes ===
+            step_log = []
+            for (tape, head, state), amp in snapshot.items():
+                step_log.append({
+                    "passo": steps,
+                    "estado": state,
+                    "cabeca": head,
+                    "fita": ''.join(tape),
+                    "amplitude_real": amp.real,
+                    "amplitude_imag": amp.imag,
+                    "probabilidade": abs(amp)**2
+                })
+            log_amplitudes.append(step_log)
 
-            # Verifica se algum estado final foi alcançado
+            qtm.visualize_amplitudes()
+
             estados_finais = [state for (_, _, state) in qtm.register.states.keys()]
             if any(s in qtm.final_states for s in estados_finais):
                 print(f"\n\033[92m Estado final alcançado com {steps} passos.\033[0m")
                 found = True
-                break  # Encerra a busca adaptativa se encontrou estado final
+                break
 
         except RuntimeError as e:
             print(f"\033[91m XX Erro durante execução no passo {steps}: {e}\033[0m")
-            historico_passos.append((steps, {}))  # registra passo com erro
+            historico_passos.append((steps, {}))
+            log_amplitudes.append([])  # Mantém alinhamento com os passos
             steps += 1
-            continue  # tenta o próximo
+            continue
 
-        steps += 1  # Incrementa o número de passos para próxima iteração
+        steps += 1
 
     if not found:
-        # Mensagem final se nenhum estado final foi encontrado
         print(f"\n\033[91m ! Nenhum estado final encontrado até {max_steps_limit} passos.\033[0m")
 
-    # Apresenta um resumo da evolução dos estados quânticos ao longo dos passos
     print(f"\n\033[96m--- Evolução Quântica ---\033[0m")
     for step, estados in historico_passos:
         print(f"\n\033[93m Passo {step}:\033[0m")
-        # Ordena e exibe os estados por probabilidade (descendente)
         for (tape, head, state), amp in sorted(estados.items(), key=lambda x: -abs(x[1])**2):
             prob = abs(amp)**2
-            if prob > 0.001:  # Filtra apenas estados com probabilidade significativa
+            if prob > 0.001:
                 print(f"  Estado: {state:>3} | Cabeça: {head:>2} | Fita: {''.join(tape)} | Prob: {prob:.4f}")
 
-    # Medida final do sistema após simulação completa
     try:
-        resultado = qtm.measure()  # Realiza a medição colapsando o sistema
+        resultado = qtm.measure()
         tape, head, state = resultado
-        #print(f"  Estado final: {state}")
-        #print(f"  Fita final: {''.join(tape)}")
-        #print(f"  Posição da cabeça: {head}")
     except RuntimeError as e:
-        # Se não houver estados disponíveis, exibe erro amigável
         print(f"\033[91m Medida falhou: {e}\033[0m")
 
+    # ===  Salva o log no final ===
+    output_path = Path("log_amplitudes.json")
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(log_amplitudes, f, indent=2, ensure_ascii=False)
+    print(f"\n\033[92m✔ Log de amplitudes salvo em: {output_path.resolve()}\033[0m")
 
 #O código abaixo foi comentado porque a execução adaptativa por estado final geraria muitos logs ao mesmo tempo, o que pode tornar difícil o entenddimento e a visualização do resultado final.
 # Se necessário, pode ser descomentado para testes específicos. Ele funciona legal, recomendo ver depois.
@@ -163,11 +193,17 @@ if __name__ == "__main__":
         input_tape=tape_input,
         final_states=final_states
     )
-
-    try:
-        numero_passos = int(input("Digite o número de passos (max_steps) para a execução: ").strip())
-    except ValueError:
-        print("Valor inválido para número de passos.")
-        exit()
+    auto = input("Deseja calcular automaticamente o número de passos? (s/n): ").strip().lower()
+    if auto == "s":
+        k = 4  # fator de multiplicação, ajustável conforme a complexidade da máquina
+        b = 10 # offset de segurança
+        numero_passos = k * len(tape_input) + b
+        print(f"max_steps estimado automaticamente: {numero_passos}")
+    else:
+        try:
+            numero_passos = int(input("Digite o número de passos (max_steps) para a execução: ").strip())
+        except ValueError:
+            print("Valor inválido para número de passos.")
+            exit()
 
     run_until_final_state(qtm, max_steps_limit=numero_passos)
