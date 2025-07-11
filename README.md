@@ -1,2 +1,3 @@
 Este projeto implementa uma **Máquina de Turing Quântica (MTQ)** em Python, com suporte a **superposição de estados**, **amplitudes complexas**, **medição quântica** e **simulação inspirada no algoritmo de Grover**. A simulação é feita através de uma expansão das transições clássicas de uma Máquina de Turing, mas com lógica e estrutura compatíveis com princípios da computação quântica.
-Ordem: Rode o main para gerar os dados, e depois Rode a visualização.
+
+# Ordem: Rode o main para gerar os dados, e depois Rode a visualização.
