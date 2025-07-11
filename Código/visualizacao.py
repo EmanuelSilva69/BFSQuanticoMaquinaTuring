@@ -10,7 +10,7 @@ de Máquina de Turing Quântica (MTQ), a partir do arquivo JSON gerado
 3. Evolução da probabilidade do estado final ('qf')
 4. Mapa de calor da probabilidade por configuração
 
-Autor: [Seu Nome]
+Autor: Emanuel Lopes
 Data: Julho de 2025
 """
 
