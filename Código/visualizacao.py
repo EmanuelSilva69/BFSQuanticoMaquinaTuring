@@ -25,21 +25,30 @@ def carregar_log(path: Path) -> pd.DataFrame:
     """
     Carrega o log da MTQ em formato JSON e converte para DataFrame plano.
 
+    O arquivo JSON é esperado no formato de uma lista de listas, onde cada sublista
+    contém os estados da MTQ em um determinado passo. Esta função "achata" essa
+    estrutura para um DataFrame tabular, facilitando a análise e visualização.
+
     Args:
         path (Path): Caminho para o arquivo `log_amplitudes.json`.
 
     Returns:
-        pd.DataFrame: Dados estruturados por passo/configuração.
+        pd.DataFrame: Dados estruturados por passo/configuração, contendo
+                      colunas como 'passo', 'estado', 'fita', 'probabilidade', etc.
     """
     with path.open("r", encoding="utf-8") as f:
         dados = json.load(f)
 
     registros = []
+    # Itera sobre cada grupo de entradas (cada "passo" de simulação)
     for grupo in dados:
+        # Adiciona cada entrada individual (Configuração da MTQ) à lista de registros
         for entrada in grupo:
             registros.append(entrada)
 
+    # Converte a lista de registros em um DataFrame do pandas
     df = pd.DataFrame(registros)
+    # Garante que o DataFrame esteja ordenado pelos passos da simulação
     df.sort_values(by=["passo"], inplace=True)
     return df
 
@@ -47,6 +56,10 @@ def carregar_log(path: Path) -> pd.DataFrame:
 def plot_probabilidade_total(df: pd.DataFrame) -> None:
     """
     Plota a soma das probabilidades em cada passo da simulação.
+
+    Este gráfico serve para verificar a conservação da norma quântica (a soma
+    das probabilidades de todos os estados em superposição deve ser sempre 1).
+    Desvios significativos podem indicar problemas na simulação.
 
     Args:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
@@ -63,6 +76,10 @@ def plot_probabilidade_total(df: pd.DataFrame) -> None:
 def plot_caminho_dominante(df: pd.DataFrame) -> None:
     """
     Plota a configuração mais provável (dominante) ao longo dos passos.
+
+    Este gráfico mostra como a probabilidade se concentra na "trajetória"
+    principal da MTQ ao longo do tempo, evidenciando o efeito da interferência
+    construtiva e a eventual convergência do sistema.
 
     Args:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
@@ -84,6 +101,11 @@ def plot_estado_final_qf(df: pd.DataFrame) -> None:
     """
     Plota a evolução da probabilidade do estado de aceitação 'qf'.
 
+    Este gráfico foca especificamente no estado final de aceitação ('qf') da
+    Máquina de Turing Quântica, mostrando como sua probabilidade evolui
+    (idealmente, se aproxima de 1) ao longo da simulação, indicando a aceitação
+    bem-sucedida da entrada.
+
     Args:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
     """
@@ -102,6 +124,11 @@ def plot_mapa_calor(df: pd.DataFrame) -> None:
     """
     Plota um mapa de calor das probabilidades por (estado, fita) ao longo dos passos.
 
+    O mapa de calor oferece uma visão abrangente de como a probabilidade se distribui
+    entre todas as configurações (estado interno e conteúdo da fita) da MTQ em
+    cada passo. Isso é útil para observar a "difusão" e "concentração" das
+    probabilidades devido à superposição e interferência.
+
     Args:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
     """
@@ -119,6 +146,10 @@ def plot_mapa_calor(df: pd.DataFrame) -> None:
 def main() -> None:
     """
     Função principal. Executa todos os gráficos com base no log de amplitudes.
+
+    Esta função coordena o carregamento dos dados de simulação e a chamada
+    de cada função de plotagem para gerar todas as visualizações definidas
+    neste módulo.
     """
     caminho_log = Path("log_amplitudes.json")
     df = carregar_log(caminho_log)
