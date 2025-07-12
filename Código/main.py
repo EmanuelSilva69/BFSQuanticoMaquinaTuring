@@ -12,13 +12,31 @@ import cmath
 from quantum_turing_machine import QuantumTuringMachine
 from copy import deepcopy
 def transitions_with_phase(raw_transitions):
-    """Adiciona fase complexa (1.0+0j) a cada transição."""
+    """
+    Adiciona uma fase complexa padrão (1.0+0j) a cada transição.
+
+    Esta função é um utilitário para garantir que todas as transições
+    tenham um fator de fase complexo, mesmo que seja neutro (fase 0, amplitude 1).
+    Isso é crucial para a simulação de interferência quântica.
+
+    Args:
+        raw_transitions (dict): Um dicionário de transições no formato
+                                (estado_atual, símbolo_lido) → [(novo_estado, novo_símbolo, direção)].
+
+    Returns:
+        dict: Um novo dicionário de transições com o formato estendido
+              (estado_atual, símbolo_lido) → [(novo_estado, novo_símbolo, direção, fase_complexa)].
+    """
     with_phase = {}
     for key, trans_list in raw_transitions.items():
         with_phase[key] = [(ns, sym, dir, 1.0 + 0j) for (ns, sym, dir) in trans_list]
     return with_phase
 
-# Transições base
+# Definição das transições da Máquina de Turing.
+# Este é um autômato específico projetado para reconhecer uma linguagem ou comportamento.
+# Cada entrada é (estado_atual, símbolo_lido) e o valor é uma lista de tuplas
+# (novo_estado, símbolo_a_escrever, direção_da_cabeça).
+# A fase será adicionada posteriormente pela função `transitions_with_phase`.
 transitions = {
     ('q0', '0'): [('q1', '0', 'D')],
     ('q1', 'a'): [('q2', 'X', 'D')],
@@ -59,17 +77,23 @@ log_amplitudes = []  # Lista global para armazenar o log por passo
 
 def run_until_final_state(qtm, max_steps_limit=100):
     """
-    Executa a MTQ até atingir um estado final ou o limite máximo de passos.
+    Executa a MTQ adaptativamente até atingir um estado final ou o limite máximo de passos.
+
+    Esta função otimiza a simulação começando com poucos passos e aumentando
+    progressivamente, evitando execuções desnecessariamente longas se o estado final
+    for alcançado rapidamente. Registra o estado da máquina a cada tentativa
+    para análise posterior.
 
     Args:
-        qtm (QuantumTuringMachine): Instância da máquina quântica.
-        max_steps_limit (int): Máximo de passos permitidos.
+        qtm (QuantumTuringMachine): Instância da máquina quântica a ser executada.
+        max_steps_limit (int): O número máximo de passos que a simulação tentará antes de parar.
     """
     print(f"\n\033[95m Iniciando busca adaptativa por estado final...\033[0m")
     steps = 2
     found = False
     historico_passos = []
 
+    # Loop principal da execução adaptativa: tenta com mais passos a cada iteração
     while steps <= max_steps_limit:
         print(f"\n\033[97m Tentando com {steps} passos...\033[0m")
         try:
@@ -181,7 +205,7 @@ def run_until_final_state(qtm, max_steps_limit=100):
 #qtm.visualize_amplitudes()
 
 
-# ⬇ Código principal aqui dentro
+# Código principal de execução quando o script é chamado diretamente
 if __name__ == "__main__":
     print(f"\n\033[1;32m Iniciando execução quântica...\033[0m")
     tape_input = input("Digite uma cadeia para testar na MTQ (ex: 0ababt): ").strip()
