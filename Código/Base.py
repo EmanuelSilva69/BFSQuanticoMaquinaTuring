@@ -16,12 +16,22 @@ import copy
 
 class QuantumInspiredBFS:
     """
-    Simulação de uma BFS com reforço quântico inspirado no algoritmo de Grover.
+    Simulação de uma BFS (Busca em Largura) com reforço quântico inspirado
+    no algoritmo de Grover.
+
+    Esta classe demonstra como os princípios de oráculo e amplificação de
+    amplitude de Grover podem ser aplicados em uma busca clássica para
+    priorizar caminhos que levam a um estado desejado. Não é uma simulação
+    de uma Máquina de Turing Quântica em si, mas uma inspiração híbrida.
 
     Atributos:
-        tm: Máquina de Turing usada para simulação (com dicionário de transições).
-        max_iterations: Número máximo de iterações de reforço.
-        final_state: Estado considerado como aceitação.
+        tm (Any): Objeto que representa a máquina de Turing (ou MTQ) usada
+                  para simulação das transições. Espera-se que possua um
+                  atributo `states` que armazene as regras de transição.
+        max_iterations (int): Número máximo de iterações de reforço (amplificação).
+                              Quanto mais iterações, maior o reforço dos caminhos.
+        final_state (str): O estado da máquina de Turing considerado como o
+                           estado de aceitação ou objetivo da busca.
     """
 
     def __init__(self, tm: Any):
@@ -30,6 +40,7 @@ class QuantumInspiredBFS:
 
         Args:
             tm (Any): Objeto que representa a máquina de Turing com atributo 'states'.
+                      Deve ter um dicionário de transições para simular os passos.
         """
         self.tm = tm
         self.max_iterations = 5
@@ -37,28 +48,39 @@ class QuantumInspiredBFS:
 
     def oracle(self, config: Tuple[tuple, int, str]) -> int:
         """
-        Oráculo quântico simulado: retorna +1 para caminhos que levam ao estado final ('qf'),
-        e -1 para os demais.
+        Oráculo quântico simulado: retorna +1 para configurações que incluem
+        o estado final ('qf'), e -1 para as demais.
+
+        No algoritmo de Grover, o oráculo "marca" os estados solução invertendo
+        sua fase. Aqui, simulamos isso retornando -1 para a amplitude.
 
         Args:
-            config (tuple): Configuração atual (tape, head, state).
+            config (tuple): Configuração atual da máquina (fita, posição da cabeça, estado interno).
 
         Returns:
-            int: +1 se for estado final, -1 caso contrário.
+            int: -1 se o estado da configuração for igual a `self.final_state`,
+                 +1 caso contrário.
         """
         _, _, state = config
         return 1 if state == self.final_state else -1
 
     def diffusion(self, amplitudes: Dict[Tuple, float]) -> Dict[Tuple, float]:
         """
-        Aplica o operador de difusão de Grover simulando o espelhamento das amplitudes
-        em torno da média.
+        Aplica o operador de difusão de Grover, simulando o espelhamento das
+        amplitudes em torno da média.
+
+        Este operador amplifica as amplitudes dos caminhos "marcados" pelo oráculo
+        e rebaixa as amplitudes dos caminhos não marcados, aumentando a probabilidade
+        de encontrar a solução. É uma operação fundamental de "amplificação de amplitude".
 
         Args:
-            amplitudes (dict): Dicionário de amplitudes associadas a cada configuração.
+            amplitudes (dict): Dicionário de amplitudes (valores reais aqui,
+                                para simplificação) associadas a cada configuração.
+                                As chaves são as configurações da máquina e os valores
+                                são suas amplitudes.
 
         Returns:
-            dict: Novo dicionário de amplitudes após a difusão.
+            dict: Novo dicionário de amplitudes após a aplicação do operador de difusão.
         """
         total = sum(amplitudes.values())
         mean = total / len(amplitudes)
@@ -68,22 +90,30 @@ class QuantumInspiredBFS:
 
     def run(self, input_string: str) -> None:
         """
-        Executa a simulação BFS com reforço quântico por Grover.
+        Executa a simulação BFS com reforço quântico inspirado por Grover.
+
+        A busca em largura explora as configurações da máquina camada por camada.
+        Em cada iteração, as amplitudes são ajustadas pelo oráculo e difusão
+        para concentrar a "probabilidade" nos caminhos que levam ao estado final.
 
         Args:
-            input_string (str): Cadeia de entrada binária a ser processada.
+            input_string (str): Cadeia de entrada (sequência de símbolos) a ser
+                                 processada pela máquina simulada.
         """
         # Configuração inicial
         initial_config = (tuple(input_string), 0, 'q0')
         queue = deque([(initial_config, [initial_config])])
         amplitudes = defaultdict(lambda: 1.0)
 
+
+        # Loop principal de iterações de amplificação de Grover
         for iteration in range(self.max_iterations):
             next_queue = deque()
             new_amplitudes = defaultdict(float)
 
             print(f"\n🔁 Iteração {iteration + 1}")
 
+            # Processa todas as configurações da fila atual (BFS)
             while queue:
                 (tape, head, state), path = queue.popleft()
                 config = (tape, head, state)
