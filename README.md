@@ -31,4 +31,4 @@ A simulação é baseada em uma expansão das transições clássicas de uma Má
 pip install -r requirements.txt
 
 
-# Ordem: Rode o main para gerar os dados, e depois Rode a visualização.
+## Ordem: Rode o main para gerar os dados, e depois Rode a visualização.
