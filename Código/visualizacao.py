@@ -65,6 +65,7 @@ def plot_probabilidade_total(df: pd.DataFrame) -> None:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
     """
     plt.figure()
+    # Agrupa os dados pelo 'passo' e soma as 'probabilidades' para cada passo
     df.groupby("passo")["probabilidade"].sum().plot(marker='o', title="Soma das Probabilidades por Passo")
     plt.xlabel("Passo")
     plt.ylabel("Probabilidade Total")
@@ -85,7 +86,9 @@ def plot_caminho_dominante(df: pd.DataFrame) -> None:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
     """
     plt.figure()
+    # Encontra a configuração com a maior probabilidade em cada passo
     mais_provaveis = df.sort_values("probabilidade", ascending=False).groupby("passo").first().reset_index()
+    # Plota a probabilidade da configuração dominante em função do passo
     plt.plot(mais_provaveis["passo"], mais_provaveis["probabilidade"],
              marker='o', color="purple", label="Configuração dominante")
     plt.title("Caminho Mais Provável ao Longo dos Passos")
@@ -109,8 +112,10 @@ def plot_estado_final_qf(df: pd.DataFrame) -> None:
     Args:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
     """
+    # Filtra o DataFrame para incluir apenas as entradas onde o estado é 'qf'
     df_qf = df[df["estado"] == "qf"]
     plt.figure()
+    # Plota a probabilidade do estado 'qf' em função do passo
     plt.plot(df_qf["passo"], df_qf["probabilidade"], marker='o', color='green')
     plt.title("Probabilidade do Estado Final (qf)")
     plt.xlabel("Passo")
@@ -132,6 +137,8 @@ def plot_mapa_calor(df: pd.DataFrame) -> None:
     Args:
         df (pd.DataFrame): DataFrame contendo os dados da simulação.
     """
+    # Pivota o DataFrame para ter 'config_id' como índice, 'passo' como colunas
+    # e 'probabilidade' como valores. Preenche valores ausentes com 0.
     pivot = df.pivot_table(index=["estado", "fita"], columns="passo",
                            values="probabilidade", fill_value=0)
     plt.figure(figsize=(12, 6))
@@ -151,9 +158,18 @@ def main() -> None:
     de cada função de plotagem para gerar todas as visualizações definidas
     neste módulo.
     """
+    # Define o caminho para o arquivo de log gerado pela simulação da MTQ
     caminho_log = Path("log_amplitudes.json")
+
+    if not caminho_log.exists():
+        print(f"Erro: O arquivo de log '{caminho_log}' não foi encontrado.")
+        print("Certifique-se de executar 'main.py' primeiro para gerar o log.")
+        return
+
+    # Carrega os dados do log em um DataFrame
     df = carregar_log(caminho_log)
 
+    # Gera cada tipo de gráfico
     plot_probabilidade_total(df)
     plot_caminho_dominante(df)
     plot_estado_final_qf(df)
