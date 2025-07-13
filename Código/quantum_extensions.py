@@ -88,14 +88,20 @@ class QuantumRegister:
             RuntimeError: Se não houver configurações no registrador para medir,
                           indicando um possível erro na execução da máquina.
         """
+
         # Calcula a soma total dos quadrados das amplitudes (deve ser 1 se normalizado corretamente)
         total = sum(abs(amp)**2 for amp in self.states.values())
         r = random.random() * total
         acc = 0
+
+        # Ordena as configurações para garantir uma escolha consistente (embora random.random já seja aleatório,
+        # a ordenação pode ajudar na depuração se 'r' for muito próximo de um limite de acumulação)
+        # A ordenação é por probabilidade decrescente
         for config, amp in sorted(self.states.items(), key=lambda x: -abs(x[1])**2):
-            acc += abs(amp)**2
+            acc += abs(amp)**2 # Adiciona a probabilidade da configuração atual ao acumulador
             if acc >= r:
-                return config
+                return config # Retorna a primeira configuração cuja probabilidade acumulada atinge 'r'
+        
         if not self.states:
             # Caso em que o registrador está vazio ou todas as amplitudes são zero
             raise RuntimeError(
@@ -107,6 +113,8 @@ class QuantumRegister:
             "Sugestão: execute visualize_amplitudes() para inspecionar os caminhos gerados."
         )
 
+        # Fallback: Se por algum motivo o loop não retornar (o que não deveria acontecer se total > 0),
+        # escolhe uma configuração aleatoriamente.
         return random.choice(list(self.states.keys()))
 
     def apply_unitary(self, U):
@@ -126,10 +134,13 @@ class QuantumRegister:
 
         # Itera sobre os elementos do operador unitário
         for (from_state, to_state), matrix_value in U.items():
+            # Se a 'from_state' existe no estado atual do registrador (tem amplitude não-zero)
             if from_state in self.states:
+                # Calcula a contribuição para a 'to_state' no novo registrador
+                # É a amplitude da 'from_state' multiplicada pelo elemento da matriz 'matrix_value'
                 new_states[to_state] += self.states[from_state] * matrix_value
-        self.states = new_states
-        self.normalize()
+        self.states = new_states # Atualiza o registrador da MTQ com o novo estado
+        self.normalize() # Normaliza o novo estado para garantir a consistência
 
 # -----------------------------------------------------------------------------
 # 2. QuantumTape: representa uma fita em superposição de conteúdos
@@ -154,6 +165,8 @@ class QuantumTape:
     """
     def __init__(self, possible_contents):
         self.superposed = defaultdict(complex)
+        # Inicializa cada conteúdo possível com uma amplitude de 1.0 + 0j
+        # (será normalizado em seguida).
         for content in possible_contents:
             self.superposed[tuple(content)] = 1.0 + 0j  # Inicializa com amplitude 1
         self.normalize()
@@ -179,7 +192,11 @@ class QuantumTape:
             tuple: O conteúdo da fita (tupla de símbolos) que foi medido.
         """
         items = list(self.superposed.items())
+
+        # Calcula as probabilidades para cada conteúdo de fita
         probs = [abs(a)**2 for (_, a) in items]
+
+        # Seleciona uma opção com base nas probabilidades calculadas
         choice = random.choices(items, weights=probs, k=1)[0]
         return choice[0]  # Retorna apenas o conteúdo da fita
 
@@ -203,9 +220,12 @@ def oracle_operator(marked_state):
                   à amplitude da `marked_state` dentro do `QuantumRegister`.
     """
     def op(qreg):
+        """
+        Aplica a inversão de fase ao estado marcado no registrador quântico.
+        """
         for state in qreg.states:
             if state == marked_state:
-                qreg.states[state] *= -1  # Inversão de fase
+                qreg.states[state] *= -1  # Inversão de fase (multiplica por -1)
     return op
 
 def diffusion_operator(qreg):
@@ -221,8 +241,10 @@ def diffusion_operator(qreg):
         qreg (QuantumRegister): O registrador quântico ao qual o operador de difusão
                                 será aplicado.
     """
+    # Calcula a amplitude média de todos os estados no registrador  
     n = len(qreg.states)
     mean_amp = sum(qreg.states.values()) / n
+    # Aplica a reflexão para cada amplitude: amp_nova = 2 * mean_amp - amp_antiga
     for k in qreg.states:
         qreg.states[k] = 2 * mean_amp - qreg.states[k]
 
@@ -241,5 +263,6 @@ def apply_decoherence(qreg, prob_error=0.05):
     """
     for state in qreg.states:
         if random.random() < prob_error:
-            qreg.states[state] = abs(qreg.states[state]) + 0j  # Remove fase
-    qreg.normalize()
+            # Se um erro ocorrer, a fase da amplitude é zerada (deixando apenas o módulo)
+            qreg.states[state] = abs(qreg.states[state]) + 0j # Remove fase, mantém o valor absoluto
+    qreg.normalize() # Re-normaliza o registrador após a aplicação da decoerência
