@@ -14,6 +14,7 @@ Data: Julho de 2025
 import cmath
 import math
 from collections import defaultdict
+# Importa módulos auxiliares que contêm as extensões quânticas
 from quantum_extensions import QuantumRegister, QuantumTape, diffusion_operator, oracle_operator, apply_decoherence
 """
     Retorna a fase quântica -1 (e^{iπ}).
@@ -122,8 +123,10 @@ class QuantumTuringMachine:
             for (new_state, new_symbol, direction, phase) in actions:
                 new_tape = list(tape)
                 new_tape[head] = new_symbol
+                # Calcula a nova posição da cabeça
                 new_head = head + 1 if direction == "D" else head - 1
 
+                # Ignora transições que levariam a cabeça para fora dos limites da nova fita
                 if new_head < 0 or new_head >= len(new_tape):
                     continue
 
