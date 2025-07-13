@@ -43,8 +43,8 @@ class QuantumInspiredBFS:
                       Deve ter um dicionário de transições para simular os passos.
         """
         self.tm = tm
-        self.max_iterations = 5
-        self.final_state = 'qf'
+        self.max_iterations = 5  # Número de iterações de Grover inspiradas
+        self.final_state = 'qf' # Estado objetivo que o oráculo irá "marcar"
 
     def oracle(self, config: Tuple[tuple, int, str]) -> int:
         """
@@ -61,8 +61,8 @@ class QuantumInspiredBFS:
             int: -1 se o estado da configuração for igual a `self.final_state`,
                  +1 caso contrário.
         """
-        _, _, state = config
-        return 1 if state == self.final_state else -1
+        _, _, state = config # Desempacota a tupla de configuração para obter o estado
+        return 1 if state == self.final_state else -1 # Retorna -1 se for o estado final
 
     def diffusion(self, amplitudes: Dict[Tuple, float]) -> Dict[Tuple, float]:
         """
@@ -83,8 +83,11 @@ class QuantumInspiredBFS:
             dict: Novo dicionário de amplitudes após a aplicação do operador de difusão.
         """
         total = sum(amplitudes.values())
+
+        # Calcula a amplitude média
         mean = total / len(amplitudes)
         for k in amplitudes:
+            # A nova amplitude é calculada como 2 * (média) - (amplitude antiga)
             amplitudes[k] = 2 * mean - amplitudes[k]
         return amplitudes
 
