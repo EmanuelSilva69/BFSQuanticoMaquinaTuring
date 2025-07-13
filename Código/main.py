@@ -97,13 +97,17 @@ def run_until_final_state(qtm, max_steps_limit=100):
     while steps <= max_steps_limit:
         print(f"\n\033[97m Tentando com {steps} passos...\033[0m")
         try:
-            qtm.reset()
-            qtm.run(max_steps=steps)
+            qtm.reset() # Reinicializa a MTQ para uma execução limpa
+            qtm.run(max_steps=steps) # Executa a simulação com o número de passos atual
 
+            # Captura um snapshot profundo do estado atual do registrador da MTQ.
+            # Isso é necessário porque o registrador é modificado em cada passo,
+            # e queremos preservar o estado exato para o log e visualização.
             snapshot = deepcopy(qtm.register.states)
-            historico_passos.append((steps, snapshot))
+            historico_passos.append((steps, snapshot)) # Adiciona ao histórico para a visualização final
 
             # ===  Registro estruturado em log_amplitudes ===
+            # Prepara os dados do snapshot atual para serem adicionados ao log global
             step_log = []
             for (tape, head, state), amp in snapshot.items():
                 step_log.append({
